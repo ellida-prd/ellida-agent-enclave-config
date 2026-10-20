@@ -1,18 +1,49 @@
-# Tinfoil Container Configuration
-# For updates: edit this file, commit, run the workflow (e.g., v0.0.2)
+# Ellida agent enclave: the public config for Tinfoil Containers.
+#
+# This file lives in the PUBLIC config repo (Tinfoil reads it at deploy time
+# to compute the enclave measurement; the phone's SDK reads it from the
+# Sigstore transparency log on every connection). Nothing secret belongs here.
+# The image is pinned by digest: that digest is what users verify.
+#
+# cvm-version: from tinfoilsh/tinfoil-containers-template on 2026-10-20.
 cvm-version: 0.14.7
 cpus: 2
 memory: 8192
 
 containers:
-  - name: "hello-world"
-    image: "ghcr.io/tinfoilsh/tinfoil-containers-hello-world@sha256:c943b1cab16409e2e686ad71deab30364c27421852cdd6b3080df1c7a38331ed"
+  - name: agent
+    # Replace with the digest printed by the image workflow for the release.
+    image: "ghcr.io/ellida-prd/ellida-agent-enclave@sha256:3ab7423e52696e8e3e6ecd61673b0e276f4f3af87322830c6514a7c5356cb792"
     env:
-      - MESSAGE: "Hello from Tinfoil"
-    secrets:
-      - GREETING_TOKEN
+      - PORT: "8080"
+      - TURN_BUDGET_SECONDS: "300"
+      - STOP_TIMEOUT_SECONDS: "330"
+      # Public values: the Stage project and its publishable key. Prod gets
+      # its own instance with its own config.
+      - SUPABASE_URL: "https://qhtxcpoudnsheozvojob.supabase.co"
+      - SUPABASE_ANON_KEY: "sb_publishable_VZoVwK0BACqlPXvQb0i3WA_poY_jW3D"
+      - AI_PROXY_URL: "https://qhtxcpoudnsheozvojob.supabase.co/functions/v1/ai-proxy"
+      - TOOL_PROXY_URL: "https://qhtxcpoudnsheozvojob.supabase.co/functions/v1/tool-proxy"
+      - NOTIFY_URL: "https://qhtxcpoudnsheozvojob.supabase.co/functions/v1/notify-agent-reply"
+    # No secrets, by design (CISO, 2026-10-19): the container acts with the
+    # user's own token and the publishable key only.
+    networks: [backend]
+    ports:
+      - "8080:8080"
+
+networks:
+  backend:
+    egress: allowlist
+    allow:
+      - qhtxcpoudnsheozvojob.supabase.co   # ai-proxy, tool-proxy, notify, PostgREST
+      - atc.tinfoil.sh                     # attestation bundles for the model enclave
+      - api.open-meteo.com                 # get_weather
+      - geocoding-api.open-meteo.com       # get_weather place lookup
+      # The spike of 2026-10-20 adds the hostnames the tinfoil SDK contacts
+      # for the model enclave and the transparency log (no wildcards allowed).
 
 shim:
   upstream-port: 8080
   paths:
-    - /*
+    - /runs
+    - /health

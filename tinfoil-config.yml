@@ -13,7 +13,7 @@ memory: 8192
 containers:
   - name: agent
     # Replace with the digest printed by the image workflow for the release.
-    image: "ghcr.io/ellida-prd/ellida-agent-enclave@sha256:3ab7423e52696e8e3e6ecd61673b0e276f4f3af87322830c6514a7c5356cb792"
+    image: "ghcr.io/ellida-prd/ellida-agent-enclave@sha256:7294c46f8e175e06b83a734baa4a50219f46749db0561770fc4ff0ee8b85b682"
     env:
       - PORT: "8080"
       - TURN_BUDGET_SECONDS: "300"
